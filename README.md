@@ -56,17 +56,19 @@ I used an [Adafruit ESP32 Feather V2](https://www.adafruit.com/product/5400) so 
 
 Four digital outputs from the microcontroller, in my case pins 14, 15, 32 and 33 are fed to inputs on four high side switches on the TBD62783A. The outputs of those switches are connected to the individual lamp leads in the PATLITE wiring harness.
 
-The TBD62783A also takes 24VDC from an external supply on its VCC pin.  To power the Feather ESP32 V2 a Traco Power [TSR 1-2450E](https://www.tracopower.com/model/tsr-1-2450e) DC-to-DC converter generates 5VDC from the 24VDC supply.  (I initially used a LM7805 voltage regulator to power the ESP32 but found it got uncomfortably hot resistively dissipating the nineteen volt drop from 24VDC to 5VDC. Happily the TSR 1-2450E is a drop-in replacement for the LM7805.)
+The TBD62783A also takes 24VDC from an external supply on its VCC pin.  To power the Feather ESP32 V2 a Traco Power [TSR 1-2450E](https://www.tracopower.com/model/tsr-1-2450e) DC-to-DC converter generates 5VDC from the 24VDC supply.  (I initially used a LM7805 voltage regulator to power the ESP32 but found it got uncomfortably hot resistively dissipating the nineteen volt drop from 24VDC to 5VDC. Happily the TSR 1-2450E is a drop-in replacement for the LM7805 and only a tiny bit larger.)
 
 ### MQTT Integration
 
-While I could have built some form of automated light animation into the sketch to produce a self-contined device, I wanted the ability to remotely control individual lights in tower.  Having used MQTT for other home automation projects it was easy to incorporate MQTT topic-based remote activation of each light as well as the entire tower, as well as topic-based reporting of stage changes in any light.  The sketch establishes a publish and subscribe topic for each light as well as for the entire tower, with topic syntax defined at the top of the sketch.
+While I could have built some form of automated light animation into the sketch to produce a self-contined device, I wanted the ability to remotely control individual lights in tower.  Having used MQTT for other home automation projects it was easy to incorporate MQTT topic-based remote activation of each light as well as the entire tower, as well as topic-based reporting of state changes in any light.  The sketch establishes a publish and subscribe topic for each light as well as for the entire tower, with topic syntax defined at the top of the sketch.
 
-To provide proper real-time generation and receipt of MQTT messages the sketch uses the MQTT processing loop features of the [Adafruit MQTT library](https://github.com/adafruit/Adafruit_MQTT_Library) with callbacks to handle receiving remote commands (via subscribe) and sharing stage changes (via publish) for each light and for the entire tower.
+To provide proper real-time generation and receipt of MQTT messages the sketch uses the MQTT processing loop features of the [Adafruit MQTT library](https://github.com/adafruit/Adafruit_MQTT_Library), with callbacks to handle receiving remote commands (via subscribe) and sharing state changes (via publish) for each light and for the entire tower.
 
 ### Home Assistant Integration
 
-While any MQTT broker and remote client could be used to interoperate with the sketch, I'm already using Home Assistant with the Mosquitto MQTT add-on.  I devised an appropriate addition to the Home Assistant YAML configuration file to allow Home Assistant to recognize each of the four lights in the signal tower and be able to control them through additions to the Home Assistant UI.  The YAML configuration information is provided in a comment at the beginning of the sketch, and will need to be modified to reflect whatever topic syntax is used for other deployment environments.
+While any MQTT broker and remote client could be used to interoperate with the sketch via the Adafruit library, I'm already using [Home Assistant](https://www.home-assistant.io/) with the [Mosquitto MQTT](https://mosquitto.org/) add-on.  I devised an appropriate addition to the Home Assistant YAML configuration file to allow Home Assistant to recognize each of the four lights in my signal tower and be able to control them through additions to the Home Assistant UI.  The YAML configuration information is provided in a comment at the beginning of the sketch, and will need to be modified to reflect whatever topic syntax is used for other deployment environments.
+
+Home Assistant integration does not use the whole-tower MQTT publish or subscribe topics, though it could. I have found them useful for testing apart from Home Assistant, and may also incorporate them in other remote control applications.
 
 ### Secrets
 
