@@ -1,3 +1,10 @@
-debug.cfg
-debug_custom.json
-esp32.svd
+secrets.h
+data/
+__vm/
+.vs/
+*.sln
+*.vcxproj*
+supporting material/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
