@@ -9,10 +9,10 @@
 // comment out to turn off; 1 = summary, 2 = verbose
 #define DEBUG 2
 
-#define LAMPPIN_RED     15
-#define LAMPPIN_ORANGE  13
+#define LAMPPIN_RED     10
+#define LAMPPIN_ORANGE  11
 #define LAMPPIN_GREEN   12
-#define LAMPPIN_BLUE    14
+#define LAMPPIN_BLUE    13
 // #define LAMPPIN_WHITE
 
 

@@ -31,10 +31,10 @@ WiFiClient client;
       unique_id: "GENERATE-UNIQUE-UUID-HERE"
       optimistic: false
 
-    - name: "Signal Tower Yellow"
-      object_id: "signaltower_01_yellow"
-      state_topic: "site/signaltower/yellow/status"
-      command_topic: "site/signaltower/yellow/switch"
+    - name: "Signal Tower orange"
+      object_id: "signaltower_01_orange"
+      state_topic: "site/signaltower/orange/status"
+      command_topic: "site/signaltower/orange/switch"
       unique_id: "GENERATE-UNIQUE-UUID-HERE"
       optimistic: false
 
@@ -81,9 +81,9 @@ Adafruit_MQTT_Publish   orangeStatePub = Adafruit_MQTT_Publish(&ha_mqtt,ORANGE_S
 // message.  Will be registered via the MQTT_Subscribe object on the
 // appropriate topic.
 // Command value passed in is an integer with the low order four bits indicating light
-// status in accordance with the mask values defined above.
+// status in accordance with the mask values defined in config.h.
 void towercmdcallback(char *data, uint16_t len) {
-  debugMessage(String("New command received, value (string) is: ")+data,2);
+  debugMessage(String("New tower command received, value (string) is: ")+data,2);
 
   // Set all lignts based on the command data value
   processCommand(atoi(data));
@@ -93,7 +93,7 @@ void towercmdcallback(char *data, uint16_t len) {
   towerPublish.publish(String(tower_state).c_str());  // Use actual state, not just data received
 }
 void redcmdcallback(char *data, uint16_t len) {
-  debugMessage(String("New Red command received, value (string) is: ")+data,2);
+  debugMessage(String("New red command received, value (string) is: ")+data,2);
 
   if(strcmp(data,LIGHT_ON) == 0) {
     redOn(true);  // And publish any status change
@@ -104,7 +104,7 @@ void redcmdcallback(char *data, uint16_t len) {
 }
 
 void greencmdcallback(char *data, uint16_t len) {
-  debugMessage(String("New Green command received, value (string) is: ")+data,2);
+  debugMessage(String("New green command received, value (string) is: ")+data,2);
 
   if(strcmp(data,LIGHT_ON) == 0) {
     greenOn(true);  // And publish any status change
@@ -114,9 +114,8 @@ void greencmdcallback(char *data, uint16_t len) {
   }
 }
 
-
 void bluecmdcallback(char *data, uint16_t len) {
-  debugMessage(String("New Blue command received, value (string) is: ")+data,2);
+  debugMessage(String("New blue command received, value (string) is: ")+data,2);
 
   if(strcmp(data,LIGHT_ON) == 0) {
     blueOn(true);  // And publish any status change
@@ -127,13 +126,13 @@ void bluecmdcallback(char *data, uint16_t len) {
 }
 
 void orangecmdcallback(char *data, uint16_t len) {
-  debugMessage(String("New Orange command received, value (string) is: ")+data,2);
+  debugMessage(String("New orange command received, value (string) is: ")+data,2);
 
   if(strcmp(data,LIGHT_ON) == 0) {
-    yellowOn(true);  // And publish any status change
+    orangeOn(true);  // And publish any status change
   }
   else if(strcmp(data,LIGHT_OFF) == 0) {
-    yellowOff(true);  // And publish any status change
+    orangeOff(true);  // And publish any status change
   }
 }
 
@@ -145,6 +144,9 @@ void setup() {
     // wait for serial port connection
     while (!Serial);
   #endif
+
+  debugMessage("signal tower started",1);
+  debugMessage("Device ID: " + String(DEVICE_ID),2);
    
   // Enable LED output pins
   pinMode(LAMPPIN_RED,OUTPUT);
@@ -152,56 +154,54 @@ void setup() {
   pinMode(LAMPPIN_GREEN,OUTPUT);
   pinMode(LAMPPIN_BLUE,OUTPUT);
 
-  // networkConnect();
+  networkConnect();
 
-  // // Enable command notification callback, and
-  // // subscribe to receive those notifications.  
-  // // Must configure before connecting to MQTT Broker.
-  // towerCommand.setCallback(towercmdcallback);   ha_mqtt.subscribe(&towerCommand);
-  // redCommand.setCallback(redcmdcallback);       ha_mqtt.subscribe(&redCommand);
-  // greenCommand.setCallback(greencmdcallback);   ha_mqtt.subscribe(&greenCommand);
-  // blueCommand.setCallback(bluecmdcallback);     ha_mqtt.subscribe(&blueCommand);
-  // orangeCommand.setCallback(orangecmdcallback); ha_mqtt.subscribe(&orangeCommand);
+  // Enable command notification callback, and
+  // subscribe to receive those notifications.  
+  // Must configure before connecting to MQTT Broker.
+  towerCommand.setCallback(towercmdcallback);   ha_mqtt.subscribe(&towerCommand);
+  redCommand.setCallback(redcmdcallback);       ha_mqtt.subscribe(&redCommand);
+  greenCommand.setCallback(greencmdcallback);   ha_mqtt.subscribe(&greenCommand);
+  blueCommand.setCallback(bluecmdcallback);     ha_mqtt.subscribe(&blueCommand);
+  orangeCommand.setCallback(orangecmdcallback); ha_mqtt.subscribe(&orangeCommand);
 
-  // // Start up lamp sequence
-  // processCommand(0b0000);  delay(500);
-  // processCommand(0b0001);  delay(500);
-  // processCommand(0b0010);  delay(500);
-  // processCommand(0b0100);  delay(500);
-  // processCommand(0b1000);  delay(500);
-  // processCommand(0b1111);  // All lights on
-  // // Report all lights on (start-up state)
-  // redStatePub.publish(LIGHT_ON);
-  // greenStatePub.publish(LIGHT_ON);
-  // blueStatePub.publish(LIGHT_ON);
-  // orangeStatePub.publish(LIGHT_ON);
+  mqttConnect();
 
-  // Serial.println("Processing MQTT commands");
+  // Start up lamp sequence
+  processCommand(0b0000);       delay(500); // All lights off
+  processCommand(blue_mask);    delay(500);
+  processCommand(green_mask);   delay(500);
+  processCommand(orange_mask);  delay(500);
+  processCommand(red_mask);     delay(500);
+  processCommand(0b1111);  // All lights on
+  
+  // Report all lights on (start-up state)
+  redStatePub.publish(LIGHT_ON);
+  greenStatePub.publish(LIGHT_ON);
+  blueStatePub.publish(LIGHT_ON);
+  orangeStatePub.publish(LIGHT_ON);
+
+  debugMessage("Now processing MQTT commands",1);
 }
 
-uint32_t pubcnt = 0;
+// uint32_t pubcnt = 0;
 
-void loop()
-{
-  testLamps();
+void loop() {
+  // Ensure the connection to the MQTT server is alive (this will make the first
+  // connection and automatically reconnect when disconnected).  See the MQTT_connect
+  // function definition further below.
+  mqttConnect();
+
+  // Sit in a tight loop processing MQTT subscriptions for a specified number
+  // of milliseconds, calling callbacks for any received.
+  ha_mqtt.processPackets(10000);
+
+  // // ping the server to keep the mqtt connection alive
+  // // NOT required if you are publishing once every KEEPALIVE seconds
+  // if(! ha_mqtt.ping()) {
+  //   ha_mqtt.disconnect();
+  // }
 }
-
-// void loop() {
-//   // Ensure the connection to the MQTT server is alive (this will make the first
-//   // connection and automatically reconnect when disconnected).  See the MQTT_connect
-//   // function definition further below.
-//   MQTT_connect();
-
-//   // Sit in a tight loop processing MQTT subscriptions for a specified number
-//   // of milliseconds, calling callbacks for any received.
-//   ha_mqtt.processPackets(10000);
-
-//   // ping the server to keep the mqtt connection alive
-//   // NOT required if you are publishing once every KEEPALIVE seconds
-//   if(! ha_mqtt.ping()) {
-//     ha_mqtt.disconnect();
-//   }
-// }
 
 // Function to connect and reconnect as necessary to the MQTT server.
 // Should be called in the loop function and it will take care if connecting.
@@ -211,7 +211,7 @@ void mqttConnect()
   // exit if already connected
   if (ha_mqtt.connected())
   {
-    debugMessage(String("Already connected to MQTT broker ") + MQTT_BROKER,1);
+    debugMessage(String("Already connected to MQTT broker ") + MQTT_BROKER,2);
     return;
   }
 
@@ -236,6 +236,7 @@ void mqttConnect()
 // 0 = off and 1 = on.
 void processCommand(int command)
 {
+  debugMessage(String("processCommand is: ")+command,2);
   if(command & red_mask) {
     redOn(false); 
   }
@@ -243,10 +244,10 @@ void processCommand(int command)
     redOff(false);
   }
   if(command & orange_mask) {
-    yellowOn(false);
+    orangeOn(false);
   }
   else {
-    yellowOff(false);
+    orangeOff(false);
   }
   if(command & green_mask) {
     greenOn(false);
@@ -322,23 +323,23 @@ void blueOff(bool publish)
   if(publish == true) towerPublish.publish(String(tower_state).c_str());
 }
 
-void yellowOn(bool publish)
+void orangeOn(bool publish)
 {
   digitalWrite(LAMPPIN_ORANGE,HIGH);
-  debugMessage("Yellow = ON",2);
+  debugMessage("orange = ON",2);
   orangeStatePub.publish(LIGHT_ON);
 
-  tower_state |= orange_mask;  // Set yellow lamp indicator bit
+  tower_state |= orange_mask;  // Set orange lamp indicator bit
   if(publish == true)towerPublish.publish(String(tower_state).c_str());
 }
 
-void yellowOff(bool publish)
+void orangeOff(bool publish)
 {
   digitalWrite(LAMPPIN_ORANGE,LOW);
-  debugMessage("Yellow = OFF",2);
+  debugMessage("orange = OFF",2);
   orangeStatePub.publish(LIGHT_OFF);
 
-  tower_state &= ~orange_mask;  // Clear yellow lamp indicator bit
+  tower_state &= ~orange_mask;  // Clear orange lamp indicator bit
   if(publish == true) towerPublish.publish(String(tower_state).c_str());
 }
 
